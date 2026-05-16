@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confirm Email — ChronQuest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="/">ChronQuest</a>
+  </nav>
+
+  <div class="auth-page">
+    <div class="auth-card" style="text-align:center">
+      <div id="loading">
+        <p class="auth-sub">Confirming your email…</p>
+      </div>
+      <div id="successMsg" hidden>
+        <div class="success-icon">✓</div>
+        <h2 class="auth-title">Email Confirmed</h2>
+        <p class="auth-sub">Your account is active. You can now log in.</p>
+        <a href="/login.html" class="btn btn-primary" style="margin-top:1.5rem">Log In</a>
+      </div>
+      <div id="errorMsg" hidden>
+        <p style="font-size:2rem">✗</p>
+        <h2 class="auth-title">Link Invalid</h2>
+        <p class="auth-sub">This confirmation link has already been used or has expired.</p>
+        <a href="/signup.html" class="btn btn-ghost" style="margin-top:1.5rem">Create Account</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API   = 'https://api.chronquest.com';
+    const token = new URLSearchParams(window.location.search).get('token');
+
+    (async () => {
+      if (!token) { show('errorMsg'); return; }
+      try {
+        const res  = await fetch(`${API}/api/confirm?token=${token}`);
+        const data = await res.json();
+        document.getElementById('loading').hidden = true;
+        show(data.success ? 'successMsg' : 'errorMsg');
+      } catch {
+        document.getElementById('loading').hidden = true;
+        show('errorMsg');
+      }
+    })();
+
+    function show(id) { document.getElementById(id).hidden = false; }
+  </script>
+</body>
+</html>

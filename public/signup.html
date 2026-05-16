@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Account — ChronQuest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="/">ChronQuest</a>
+    <ul class="nav-links">
+      <li><a href="/login.html">Log In</a></li>
+    </ul>
+  </nav>
+
+  <div class="auth-page">
+    <div class="auth-card">
+      <h1 class="auth-title">Create Account</h1>
+      <p class="auth-sub">Register to manage your devices and unlocks.</p>
+
+      <div id="authError" class="auth-error" hidden></div>
+
+      <form id="signupForm" class="auth-form">
+        <div class="form-row">
+          <label for="email">Email address</label>
+          <input type="email" id="email" placeholder="you@example.com" required />
+        </div>
+        <div class="form-row">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="At least 8 characters" required />
+        </div>
+        <div class="form-row">
+          <label for="confirm">Confirm password</label>
+          <input type="password" id="confirm" placeholder="Repeat password" required />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%">Create Account</button>
+      </form>
+
+      <div id="signupSuccess" hidden class="auth-success">
+        <div class="success-icon">✓</div>
+        <h3>Check your email</h3>
+        <p>We sent a confirmation link to <strong id="sentTo"></strong>.<br />Click it to activate your account.</p>
+      </div>
+
+      <p class="auth-footer">Already have an account? <a href="/login.html">Log in</a></p>
+    </div>
+  </div>
+
+  <script>
+    const API = 'https://api.chronquest.com';
+
+    document.getElementById('signupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const confirm  = document.getElementById('confirm').value;
+      const errBox   = document.getElementById('authError');
+
+      errBox.hidden = true;
+      if (password !== confirm) { showError('Passwords do not match'); return; }
+      if (password.length < 8)  { showError('Password must be at least 8 characters'); return; }
+
+      const btn = e.target.querySelector('button');
+      btn.textContent = 'Creating account…';
+      btn.disabled = true;
+
+      try {
+        const res  = await fetch(`${API}/api/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (!data.success) { showError(data.error); btn.textContent = 'Create Account'; btn.disabled = false; return; }
+        document.getElementById('sentTo').textContent = email;
+        document.getElementById('signupForm').hidden   = true;
+        document.getElementById('signupSuccess').hidden = false;
+      } catch {
+        showError('Connection error — please try again.');
+        btn.textContent = 'Create Account';
+        btn.disabled = false;
+      }
+    });
+
+    function showError(msg) {
+      const el = document.getElementById('authError');
+      el.textContent = msg;
+      el.hidden = false;
+    }
+  </script>
+</body>
+</html>

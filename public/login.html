@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Log In — ChronQuest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="/">ChronQuest</a>
+    <ul class="nav-links">
+      <li><a href="/signup.html">Create Account</a></li>
+    </ul>
+  </nav>
+
+  <div class="auth-page">
+    <div class="auth-card">
+      <h1 class="auth-title">Welcome Back</h1>
+      <p class="auth-sub">Log in to manage your devices and unlocks.</p>
+
+      <div id="authError" class="auth-error" hidden></div>
+
+      <form id="loginForm" class="auth-form">
+        <div class="form-row">
+          <label for="email">Email address</label>
+          <input type="email" id="email" placeholder="you@example.com" required />
+        </div>
+        <div class="form-row">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Your password" required />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%">Log In</button>
+      </form>
+
+      <p class="auth-footer">Don't have an account? <a href="/signup.html">Create one</a></p>
+    </div>
+  </div>
+
+  <script>
+    const API = 'https://api.chronquest.com';
+
+    // Redirect if already logged in
+    if (localStorage.getItem('cq_token')) window.location = '/dashboard.html';
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const btn      = e.target.querySelector('button');
+
+      document.getElementById('authError').hidden = true;
+      btn.textContent = 'Logging in…';
+      btn.disabled = true;
+
+      try {
+        const res  = await fetch(`${API}/api/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          document.getElementById('authError').textContent = data.error;
+          document.getElementById('authError').hidden = false;
+          btn.textContent = 'Log In';
+          btn.disabled = false;
+          return;
+        }
+        localStorage.setItem('cq_token', data.token);
+        window.location = '/dashboard.html';
+      } catch {
+        document.getElementById('authError').textContent = 'Connection error — please try again.';
+        document.getElementById('authError').hidden = false;
+        btn.textContent = 'Log In';
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Account — ChronQuest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .dash-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-top:2rem; }
+    .dash-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.75rem; }
+    .dash-card h3 { font-size:1rem; font-weight:600; color:#fff; margin-bottom:1rem; }
+    .device-list { display:flex; flex-direction:column; gap:0.75rem; }
+    .device-row  { display:flex; align-items:center; justify-content:space-between; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:0.75rem 1rem; }
+    .device-mac  { font-family:monospace; font-size:0.85rem; color:var(--gold); }
+    .device-nick { font-size:0.8rem; color:var(--text-sub); }
+    .device-del  { background:none; border:none; color:var(--text-mute); cursor:pointer; font-size:1rem; padding:0.25rem 0.5rem; border-radius:4px; }
+    .device-del:hover { color:#e05050; background:rgba(224,80,80,0.1); }
+    .unlock-row  { display:flex; align-items:center; justify-content:space-between; padding:0.6rem 0; border-bottom:1px solid var(--border); }
+    .unlock-row:last-child { border-bottom:none; }
+    .unlock-name { font-size:0.9rem; color:var(--text); }
+    .unlock-status { font-size:0.75rem; font-weight:600; letter-spacing:0.05em; padding:0.2rem 0.6rem; border-radius:4px; }
+    .status-active { background:rgba(80,200,100,0.15); color:#5cc878; border:1px solid rgba(80,200,100,0.25); }
+    .status-locked { background:rgba(201,168,76,0.1); color:var(--gold-dim); border:1px solid rgba(201,168,76,0.2); }
+    .empty-state { color:var(--text-mute); font-size:0.875rem; padding:1rem 0; }
+    @media (max-width:640px) { .dash-grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="/">ChronQuest</a>
+    <ul class="nav-links">
+      <li><span id="navEmail" style="color:var(--text-sub);font-size:0.875rem"></span></li>
+      <li><a href="#" id="logoutBtn">Log Out</a></li>
+    </ul>
+  </nav>
+
+  <div style="max-width:900px;margin:0 auto;padding:100px 2rem 4rem">
+    <h1 style="font-family:var(--font-head);font-size:1.8rem;color:#fff;margin-bottom:0.25rem">My Account</h1>
+    <p id="userEmail" style="color:var(--text-sub);font-size:0.9rem;margin-bottom:2rem"></p>
+
+    <div class="dash-grid">
+
+      <!-- Devices -->
+      <div class="dash-card">
+        <h3>Registered Devices</h3>
+        <div id="deviceList" class="device-list">
+          <p class="empty-state">Loading…</p>
+        </div>
+
+        <form id="addDeviceForm" style="margin-top:1.25rem;display:flex;flex-direction:column;gap:0.75rem">
+          <div class="form-row">
+            <label for="newMac">Add a device</label>
+            <input type="text" id="newMac" placeholder="AA:BB:CC:DD:EE:FF" maxlength="17" />
+          </div>
+          <div class="form-row">
+            <input type="text" id="newNick" placeholder="Nickname (optional)" maxlength="40" />
+          </div>
+          <div id="deviceError" class="auth-error" hidden></div>
+          <button type="submit" class="btn btn-primary" style="align-self:flex-start">Add Device</button>
+        </form>
+      </div>
+
+      <!-- Unlocks -->
+      <div class="dash-card">
+        <h3>Feature Unlocks</h3>
+        <div id="unlockList">
+          <p class="empty-state">Register a device to see unlock status.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const API   = 'https://api.chronquest.com';
+    const token = localStorage.getItem('cq_token');
+    if (!token) window.location = '/login.html';
+
+    const authHeaders = {
+      'Content-Type':  'application/json',
+      'Authorization': `Bearer ${token}`,
+    };
+
+    let userData = null;
+
+    async function loadMe() {
+      const res  = await fetch(`${API}/api/me`, { headers: authHeaders });
+      if (res.status === 401) { localStorage.removeItem('cq_token'); window.location = '/login.html'; return; }
+      const data = await res.json();
+      if (!data.success) return;
+      userData = data;
+      document.getElementById('navEmail').textContent  = data.user.email;
+      document.getElementById('userEmail').textContent = data.user.email;
+      renderDevices(data.devices);
+    }
+
+    function renderDevices(devices) {
+      const list = document.getElementById('deviceList');
+      if (!devices.length) {
+        list.innerHTML = '<p class="empty-state">No devices registered yet. Add one below.</p>';
+        renderUnlocks([]);
+        return;
+      }
+      list.innerHTML = devices.map(d => `
+        <div class="device-row">
+          <div>
+            <div class="device-mac">${d.mac_address}</div>
+            ${d.nickname ? `<div class="device-nick">${d.nickname}</div>` : ''}
+          </div>
+          <button class="device-del" onclick="removeDevice('${d.mac_address}')" title="Remove">✕</button>
+        </div>
+      `).join('');
+      renderUnlocks(devices);
+    }
+
+    function renderUnlocks(devices) {
+      const el = document.getElementById('unlockList');
+      if (!devices.length) {
+        el.innerHTML = '<p class="empty-state">Register a device to see unlock status.</p>';
+        return;
+      }
+      const features = [
+        { name: 'Party Mode',    bit: 0x01, desc: 'Wireless sync across devices' },
+        { name: 'Internet Play', bit: 0x02, desc: 'Remote game sessions'          },
+      ];
+      el.innerHTML = devices.map(d => `
+        <p style="font-size:0.75rem;color:var(--text-mute);margin:0.5rem 0 0.25rem;letter-spacing:0.05em">${d.mac_address}</p>
+        ${features.map(f => {
+          const active = (d.unlock_mask & f.bit) !== 0;
+          return `<div class="unlock-row">
+            <div>
+              <div class="unlock-name">${f.name}</div>
+              <div style="font-size:0.78rem;color:var(--text-mute)">${f.desc}</div>
+            </div>
+            <span class="unlock-status ${active ? 'status-active' : 'status-locked'}">
+              ${active ? 'Active' : 'Locked'}
+            </span>
+          </div>`;
+        }).join('')}
+      `).join('<hr style="border:none;border-top:1px solid var(--border);margin:0.75rem 0"/>');
+    }
+
+    async function removeDevice(mac) {
+      if (!confirm(`Remove device ${mac}?`)) return;
+      const res = await fetch(`${API}/api/devices/${mac}`, { method: 'DELETE', headers: authHeaders });
+      const data = await res.json();
+      if (data.success) loadMe();
+    }
+
+    // MAC auto-format
+    document.getElementById('newMac').addEventListener('input', (e) => {
+      let v = e.target.value.replace(/[^0-9A-Fa-f]/g, '').toUpperCase();
+      v = v.match(/.{1,2}/g)?.join(':') ?? v;
+      if (v.length > 17) v = v.slice(0, 17);
+      e.target.value = v;
+    });
+
+    document.getElementById('addDeviceForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const mac  = document.getElementById('newMac').value.trim();
+      const nick = document.getElementById('newNick').value.trim();
+      const errEl = document.getElementById('deviceError');
+      errEl.hidden = true;
+
+      if (!/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/.test(mac)) {
+        errEl.textContent = 'Invalid Device ID — format must be AA:BB:CC:DD:EE:FF';
+        errEl.hidden = false; return;
+      }
+
+      const btn = e.target.querySelector('button');
+      btn.textContent = 'Adding…'; btn.disabled = true;
+
+      const res  = await fetch(`${API}/api/devices`, {
+        method: 'POST', headers: authHeaders,
+        body: JSON.stringify({ mac_address: mac, nickname: nick }),
+      });
+      const data = await res.json();
+
+      btn.textContent = 'Add Device'; btn.disabled = false;
+
+      if (!data.success) {
+        errEl.textContent = data.error; errEl.hidden = false; return;
+      }
+      document.getElementById('newMac').value  = '';
+      document.getElementById('newNick').value = '';
+      loadMe();
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await fetch(`${API}/api/logout`, { method: 'POST', headers: authHeaders });
+      localStorage.removeItem('cq_token');
+      window.location = '/';
+    });
+
+    loadMe();
+  </script>
+</body>
+</html>
