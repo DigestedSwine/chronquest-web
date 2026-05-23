@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — ChronQuest</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── Layout ── */
+    .admin-wrap { max-width:1200px; margin:0 auto; padding:100px 2rem 4rem; }
+    .admin-head  { display:flex; align-items:center; justify-content:space-between; margin-bottom:2rem; flex-wrap:wrap; gap:1rem; }
+    .admin-title { font-family:var(--font-head); font-size:1.8rem; color:#fff; }
+    .tab-bar     { display:flex; gap:0.5rem; margin-bottom:1.5rem; border-bottom:1px solid var(--border); padding-bottom:0; }
+    .tab-btn     { background:none; border:none; color:var(--text-sub); cursor:pointer; font-size:0.9rem; font-weight:500; padding:0.6rem 1.2rem; border-bottom:2px solid transparent; margin-bottom:-1px; transition:color 0.15s, border-color 0.15s; }
+    .tab-btn:hover    { color:#fff; }
+    .tab-btn.active   { color:var(--gold); border-bottom-color:var(--gold); }
+    .tab-panel        { display:none; }
+    .tab-panel.active { display:block; }
+
+    /* ── Table ── */
+    .admin-table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius); }
+    table { width:100%; border-collapse:collapse; font-size:0.875rem; }
+    thead th { background:var(--bg-card); color:var(--text-sub); font-weight:600; font-size:0.75rem; letter-spacing:0.06em; text-transform:uppercase; padding:0.75rem 1rem; text-align:left; border-bottom:1px solid var(--border); white-space:nowrap; }
+    tbody tr { border-bottom:1px solid var(--border); transition:background 0.1s; }
+    tbody tr:last-child { border-bottom:none; }
+    tbody tr:hover { background:rgba(255,255,255,0.03); }
+    tbody td { padding:0.75rem 1rem; color:var(--text); vertical-align:middle; }
+    .mono  { font-family:monospace; font-size:0.8rem; color:var(--gold); }
+    .dim   { color:var(--text-mute); font-size:0.8rem; }
+    .never { color:var(--text-mute); font-style:italic; font-size:0.8rem; }
+
+    /* ── Unlock toggles ── */
+    .unlock-cell { display:flex; gap:0.4rem; flex-wrap:wrap; }
+    .unlock-chip { display:inline-flex; align-items:center; gap:0.3rem; font-size:0.75rem; font-weight:600; padding:0.2rem 0.6rem; border-radius:4px; border:1px solid; cursor:pointer; transition:all 0.15s; user-select:none; white-space:nowrap; }
+    .unlock-chip.active   { background:rgba(80,200,100,0.15); color:#5cc878; border-color:rgba(80,200,100,0.3); }
+    .unlock-chip.inactive { background:rgba(201,168,76,0.08); color:var(--gold-dim); border-color:rgba(201,168,76,0.2); }
+    .unlock-chip:hover    { filter:brightness(1.2); }
+    .unlock-chip .dot     { width:6px; height:6px; border-radius:50%; background:currentColor; }
+
+    /* ── User badges ── */
+    .role-badge { font-size:0.72rem; font-weight:600; padding:0.15rem 0.5rem; border-radius:4px; border:1px solid; }
+    .role-admin { background:rgba(201,168,76,0.15); color:var(--gold); border-color:rgba(201,168,76,0.3); }
+    .role-user  { background:rgba(120,120,140,0.1); color:var(--text-mute); border-color:var(--border); }
+    .role-toggle { background:none; border:1px solid var(--border); color:var(--text-sub); font-size:0.75rem; padding:0.2rem 0.6rem; border-radius:4px; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+    .role-toggle:hover { border-color:var(--gold); color:var(--gold); }
+
+    /* ── Misc ── */
+    .chip-new  { font-size:0.7rem; background:rgba(100,140,255,0.15); color:#8ab4ff; border:1px solid rgba(100,140,255,0.25); padding:0.15rem 0.45rem; border-radius:4px; margin-left:0.4rem; vertical-align:middle; }
+    .stat-row  { display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1.5rem; }
+    .stat-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.5rem; min-width:140px; }
+    .stat-val  { font-size:1.6rem; font-weight:700; color:#fff; line-height:1; }
+    .stat-label{ font-size:0.75rem; color:var(--text-mute); margin-top:0.3rem; letter-spacing:0.04em; }
+    .search-bar { display:flex; gap:0.75rem; margin-bottom:1rem; }
+    .search-bar input { background:var(--bg-card); border:1px solid var(--border); color:#fff; border-radius:6px; padding:0.5rem 0.75rem; font-size:0.875rem; width:280px; }
+    .search-bar input:focus { outline:none; border-color:var(--gold); }
+    .empty-row td { text-align:center; padding:2rem; color:var(--text-mute); font-style:italic; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="nav-logo" href="/">ChronQuest</a>
+    <ul class="nav-links">
+      <li><span style="color:var(--gold);font-size:0.75rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase">Admin</span></li>
+      <li><a href="/dashboard.html">My Account</a></li>
+      <li><a href="#" id="logoutBtn">Log Out</a></li>
+    </ul>
+  </nav>
+
+  <div class="admin-wrap">
+    <div class="admin-head">
+      <h1 class="admin-title">Admin Portal</h1>
+      <div id="statsRow" class="stat-row"></div>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="devices">Devices</button>
+      <button class="tab-btn" data-tab="users">Users</button>
+    </div>
+
+    <!-- ── Devices tab ── -->
+    <div id="tab-devices" class="tab-panel active">
+      <div class="search-bar">
+        <input type="text" id="deviceSearch" placeholder="Search SN, MAC, nickname, owner…" />
+      </div>
+      <div class="admin-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Serial Number</th>
+              <th>MAC Address</th>
+              <th>Nickname</th>
+              <th>Owner</th>
+              <th>Last Check-in</th>
+              <th>Firmware</th>
+              <th>Feature Unlocks</th>
+            </tr>
+          </thead>
+          <tbody id="deviceTbody">
+            <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-mute)">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Users tab ── -->
+    <div id="tab-users" class="tab-panel">
+      <div class="search-bar">
+        <input type="text" id="userSearch" placeholder="Search email…" />
+      </div>
+      <div class="admin-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Confirmed</th>
+              <th>Registered</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="userTbody">
+            <tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-mute)">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API   = 'https://api.chronquest.com';
+    const token = localStorage.getItem('cq_token');
+    if (!token) window.location = '/login.html';
+
+    const authH = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+
+    // ── Features bitmask definition ───────────────────────────────
+    // Party Mode is FREE — not tracked by a bit, always available.
+    const FEATURES = [
+      { name: 'Internet Play', bit: 0x01, type: 'subscription' },
+      { name: 'Theme · Warm',  bit: 0x02, type: 'purchase'      },
+      // 0x04 = future theme slot
+      // 0x08 = future theme slot
+    ];
+
+    let allDevices = [];
+    let allUsers   = [];
+    let meId       = null;
+
+    // ── Tab switching ─────────────────────────────────────────────
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    // ── Load everything ───────────────────────────────────────────
+    async function init() {
+      // Verify admin
+      const meRes  = await fetch(`${API}/api/me`, { headers: authH });
+      if (meRes.status === 401) { localStorage.removeItem('cq_token'); window.location='/login.html'; return; }
+      const meData = await meRes.json();
+      if (!meData.user?.is_admin) { window.location = '/dashboard.html'; return; }
+      meId = meData.user.id;
+
+      await Promise.all([loadDevices(), loadUsers()]);
+    }
+
+    async function loadDevices() {
+      const res  = await fetch(`${API}/api/admin/devices`, { headers: authH });
+      const data = await res.json();
+      if (!data.success) return;
+      allDevices = data.devices;
+      renderDevices(allDevices);
+      updateStats();
+    }
+
+    async function loadUsers() {
+      const res  = await fetch(`${API}/api/admin/users`, { headers: authH });
+      const data = await res.json();
+      if (!data.success) return;
+      allUsers = data.users;
+      renderUsers(allUsers);
+      updateStats();
+    }
+
+    // ── Stats cards ───────────────────────────────────────────────
+    function updateStats() {
+      if (!allDevices.length && !allUsers.length) return;
+      const now      = Math.floor(Date.now() / 1000);
+      const active24 = allDevices.filter(d => d.last_checkin_at && (now - d.last_checkin_at) < 86400).length;
+      const unlocked = allDevices.filter(d => d.unlock_mask > 0).length;
+      document.getElementById('statsRow').innerHTML = `
+        <div class="stat-card"><div class="stat-val">${allDevices.length}</div><div class="stat-label">Total Devices</div></div>
+        <div class="stat-card"><div class="stat-val">${active24}</div><div class="stat-label">Active (24h)</div></div>
+        <div class="stat-card"><div class="stat-val">${unlocked}</div><div class="stat-label">Unlocked</div></div>
+        <div class="stat-card"><div class="stat-val">${allUsers.length}</div><div class="stat-label">Accounts</div></div>
+      `;
+    }
+
+    // ── Render devices ────────────────────────────────────────────
+    function renderDevices(devices) {
+      const tbody = document.getElementById('deviceTbody');
+      if (!devices.length) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="7">No devices found.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = devices.map(d => {
+        const sn        = d.serial_number || '—';
+        const checkin   = d.last_checkin_at ? fmtDate(d.last_checkin_at) : '<span class="never">Never</span>';
+        const fw        = d.firmware_version ? `<span class="mono">${esc(d.firmware_version)}</span>` : '<span class="dim">Unknown</span>';
+        const nick      = d.nickname ? `<span class="dim">${esc(d.nickname)}</span>` : '';
+        const owner     = d.owner_email ? `<span class="dim">${esc(d.owner_email)}</span>` : '<span class="never">Unregistered</span>';
+        const chips     = FEATURES.map(f => {
+          const active = (d.unlock_mask & f.bit) !== 0;
+          return `<span class="unlock-chip ${active ? 'active' : 'inactive'}"
+                    onclick="toggleUnlock('${esc(d.serial_number)}', ${d.unlock_mask}, ${f.bit}, this)"
+                    title="Click to ${active ? 'revoke' : 'grant'} ${f.name}">
+                    <span class="dot"></span>${f.name}
+                  </span>`;
+        }).join('');
+        return `<tr>
+          <td><span class="mono">${esc(sn)}</span></td>
+          <td><span class="mono">${esc(d.mac_address)}</span></td>
+          <td>${nick}</td>
+          <td>${owner}</td>
+          <td>${checkin}</td>
+          <td>${fw}</td>
+          <td><div class="unlock-cell">${chips}</div></td>
+        </tr>`;
+      }).join('');
+    }
+
+    // ── Render users ──────────────────────────────────────────────
+    function renderUsers(users) {
+      const tbody = document.getElementById('userTbody');
+      if (!users.length) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No users found.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = users.map(u => {
+        const badge    = u.is_admin
+          ? '<span class="role-badge role-admin">Admin</span>'
+          : '<span class="role-badge role-user">User</span>';
+        const confirmed = u.confirmed
+          ? '<span style="color:#5cc878">✓ Confirmed</span>'
+          : '<span style="color:var(--text-mute)">Pending</span>';
+        const isSelf   = u.id === meId;
+        const roleBtn  = isSelf ? '<span class="dim">(you)</span>'
+          : `<button class="role-toggle" onclick="toggleRole('${u.id}', ${u.is_admin}, this)">
+               ${u.is_admin ? 'Remove Admin' : 'Make Admin'}
+             </button>`;
+        return `<tr>
+          <td>${esc(u.email)}</td>
+          <td>${badge}</td>
+          <td>${confirmed}</td>
+          <td><span class="dim">${fmtDate(u.created_at)}</span></td>
+          <td>${roleBtn}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    // ── Unlock toggle ─────────────────────────────────────────────
+    async function toggleUnlock(sn, currentMask, bit, el) {
+      if (!sn || sn === '—') return;
+      const newMask = (currentMask & bit) ? (currentMask & ~bit) : (currentMask | bit);
+      el.style.opacity = '0.5';
+      el.style.pointerEvents = 'none';
+      const res  = await fetch(`${API}/api/admin/devices/${sn}/unlock`, {
+        method: 'POST', headers: authH,
+        body: JSON.stringify({ unlock_mask: newMask }),
+      });
+      const data = await res.json();
+      el.style.opacity = '';
+      el.style.pointerEvents = '';
+      if (!data.success) { alert(data.error || 'Failed to update unlock.'); return; }
+      // Update local state and re-render
+      const dev = allDevices.find(d => d.serial_number === sn);
+      if (dev) dev.unlock_mask = newMask;
+      const active = (newMask & bit) !== 0;
+      el.className = `unlock-chip ${active ? 'active' : 'inactive'}`;
+      el.title     = `Click to ${active ? 'revoke' : 'grant'} ${el.textContent.trim()}`;
+      updateStats();
+    }
+
+    // ── Role toggle ───────────────────────────────────────────────
+    async function toggleRole(userId, isAdmin, btn) {
+      const confirmMsg = isAdmin
+        ? 'Remove admin rights from this user?'
+        : 'Grant admin rights to this user?';
+      if (!confirm(confirmMsg)) return;
+      btn.disabled = true;
+      const res  = await fetch(`${API}/api/admin/users/${userId}/role`, {
+        method: 'POST', headers: authH,
+        body: JSON.stringify({ is_admin: !isAdmin }),
+      });
+      const data = await res.json();
+      if (!data.success) { alert(data.error || 'Failed to update role.'); btn.disabled=false; return; }
+      loadUsers(); // reload to reflect change
+    }
+
+    // ── Search ────────────────────────────────────────────────────
+    document.getElementById('deviceSearch').addEventListener('input', e => {
+      const q = e.target.value.toLowerCase();
+      renderDevices(allDevices.filter(d =>
+        (d.serial_number  || '').toLowerCase().includes(q) ||
+        (d.mac_address    || '').toLowerCase().includes(q) ||
+        (d.nickname       || '').toLowerCase().includes(q) ||
+        (d.owner_email    || '').toLowerCase().includes(q) ||
+        (d.firmware_version || '').toLowerCase().includes(q)
+      ));
+    });
+
+    document.getElementById('userSearch').addEventListener('input', e => {
+      const q = e.target.value.toLowerCase();
+      renderUsers(allUsers.filter(u => (u.email || '').toLowerCase().includes(q)));
+    });
+
+    // ── Logout ────────────────────────────────────────────────────
+    document.getElementById('logoutBtn').addEventListener('click', async e => {
+      e.preventDefault();
+      await fetch(`${API}/api/logout`, { method: 'POST', headers: authH });
+      localStorage.removeItem('cq_token');
+      window.location = '/';
+    });
+
+    // ── Helpers ───────────────────────────────────────────────────
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function fmtDate(ts) {
+      if (!ts) return '—';
+      const d = new Date(ts * 1000);
+      return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
+        + ' ' + d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:true });
+    }
+
+    init();
+  </script>
+</body>
+</html>
